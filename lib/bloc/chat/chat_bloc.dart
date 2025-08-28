@@ -24,14 +24,27 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   Future<void> _onLoadMessages(LoadMessages event, Emitter<ChatState> emit) async {
-    emit(ChatLoading());
-    try {
-      final messages = await _apiService.getChatMessages(event.chatId);
-      emit(MessagesLoaded(messages: messages));
-    } catch (e) {
-      emit(ChatError(message: e.toString()));
+    // Keep existing state instead of resetting to ChatLoading
+    if (state is ChatsLoaded) {
+      final existingChats = (state as ChatsLoaded).chats;
+      try {
+        final messages = await _apiService.getChatMessages(event.chatId);
+        emit(MessagesLoaded(messages: messages));
+        // 👇 restore chat list after showing messages
+        emit(ChatsLoaded(chats: existingChats));
+      } catch (e) {
+        emit(ChatError(message: e.toString()));
+      }
+    } else {
+      try {
+        final messages = await _apiService.getChatMessages(event.chatId);
+        emit(MessagesLoaded(messages: messages));
+      } catch (e) {
+        emit(ChatError(message: e.toString()));
+      }
     }
   }
+
 
   Future<void> _onSendMessage(SendMessage event, Emitter<ChatState> emit) async {
     try {

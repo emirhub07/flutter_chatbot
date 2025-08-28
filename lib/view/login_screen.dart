@@ -1,24 +1,20 @@
-import 'package:chatbot/bloc/chat/chat_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
-import 'chat_list_screen.dart';
-
 
 class LoginScreen extends StatefulWidget {
-
-
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'swaroop.vass@gmail.com');
-  final _passwordController = TextEditingController(text: '@Tyrion99');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   String _selectedRole = 'vendor';
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -26,17 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.grey.shade100,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<ChatBloc>(), // reuse the existing AuthBloc
-                  child: ChatListScreen(),
-                ),
-              ),
-            );
-          } else if (state is AuthError) {
+          if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -52,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Logo
                   Container(
                     width: 100,
                     height: 100,
@@ -66,6 +53,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   SizedBox(height: 32),
+
+                  // Title
                   Text(
                     'Welcome Back!',
                     style: TextStyle(
@@ -83,6 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   SizedBox(height: 48),
+
+                  // Form Container
                   Container(
                     padding: EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -99,6 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Column(
                       children: [
+                        // Email
                         TextField(
                           controller: _emailController,
                           decoration: InputDecoration(
@@ -112,20 +104,36 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         SizedBox(height: 16),
+
+                        // Password
                         TextField(
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Password',
                             prefixIcon: Icon(Icons.lock_outlined),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
                             fillColor: Colors.grey.shade50,
                           ),
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                         ),
                         SizedBox(height: 16),
+
+                        // Role Dropdown
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
@@ -161,12 +169,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               ],
-                              onChanged: (value) => setState(() => _selectedRole = value!),
+                              onChanged: (value) =>
+                                  setState(() => _selectedRole = value!),
                             ),
                           ),
                         ),
                         SizedBox(height: 24),
+
+                        // Button (only this rebuilds with BlocBuilder)
                         BlocBuilder<AuthBloc, AuthState>(
+                          buildWhen: (previous, current) =>
+                          current is AuthLoading || current is AuthInitial || current is AuthError,
                           builder: (context, state) {
                             if (state is AuthLoading) {
                               return Container(
@@ -180,7 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: CircularProgressIndicator(color: Colors.white),
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white),
                                 ),
                               );
                             }
@@ -189,12 +203,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 48,
                               child: ElevatedButton(
                                 onPressed: () {
-                                  if (_emailController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
-                                    context.read<AuthBloc>().add(LoginRequested(
-                                      email: _emailController.text,
-                                      password: _passwordController.text,
-                                      role: _selectedRole,
-                                    ));
+                                  if (_emailController.text.isNotEmpty &&
+                                      _passwordController.text.isNotEmpty) {
+                                    context.read<AuthBloc>().add(
+                                      LoginRequested(
+                                        email: _emailController.text,
+                                        password: _passwordController.text,
+                                        role: _selectedRole,
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            "Email and password cannot be empty"),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -225,5 +250,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

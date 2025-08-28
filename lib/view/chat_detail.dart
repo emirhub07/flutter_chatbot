@@ -24,8 +24,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<ChatBloc>().add(LoadMessages(chatId: widget.chatId));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ChatBloc>().add(LoadMessages(chatId: widget.chatId));
+      }
+    });
   }
+
 
   @override
   Widget build(BuildContext context) {
